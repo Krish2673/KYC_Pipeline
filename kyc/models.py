@@ -1,5 +1,21 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.core.exceptions import ValidationError
+
+def validate_file(file):
+    max_size = 5 * 1024 * 1024  # 5MB
+
+    if file.size > max_size:
+        raise ValidationError("File size exceeds 5MB")
+
+    valid_types = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png'
+    ]
+
+    if file.content_type not in valid_types:
+        raise ValidationError("Invalid file type")
 
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -43,7 +59,7 @@ class Document(models.Model):
     ]
 
     submission = models.ForeignKey(KYCSubmission, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='documents/')
+    file = models.FileField(upload_to='documents/', validators=[validate_file])
     doc_type = models.CharField(max_length=20, choices=DOC_TYPES)
 
 class Notification(models.Model):

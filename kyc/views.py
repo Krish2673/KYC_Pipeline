@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import KYCSubmission
-from .serializers import KYCSubmissionSerializer
+from .serializers import KYCSubmissionSerializer, DocumentSerializer
 from kyc.services.state_machine import transition_state
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsMerchant
@@ -65,3 +65,26 @@ class ReviewActionView(APIView):
 
         except ValueError as e:
             return Response({"error": str(e)}, status=400)
+        
+class DocumentUploadView(APIView):
+    permission_classes = [IsAuthenticated, IsMerchant]
+
+    def post(self, request):
+        try:
+            submission_id = request.data.get("submission")
+
+            submission = KYCSubmission.objects.get(
+                id=submission_id,
+                merchant=request.user
+            )
+
+        except KYCSubmission.DoesNotExist:
+            return Response({"error": "Invalid submission"}, status=400)
+
+        serializer = DocumentSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(submission=submission)
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
