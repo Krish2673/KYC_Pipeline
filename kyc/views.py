@@ -4,8 +4,13 @@ from rest_framework import status
 from .models import KYCSubmission
 from .serializers import KYCSubmissionSerializer
 from kyc.services.state_machine import transition_state
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsMerchant
+from .permissions import IsReviewer
 
 class KYCSubmissionCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsMerchant]
+
     def post(self, request):
         serializer = KYCSubmissionSerializer(data=request.data)
 
@@ -13,9 +18,11 @@ class KYCSubmissionCreateView(APIView):
             serializer.save(merchant=request.user)
             return Response(serializer.data)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=400)
     
 class SubmitKYCView(APIView):
+    permission_classes = [IsAuthenticated, IsMerchant]
+
     def post(self, request, pk):
         try:
             submission = KYCSubmission.objects.get(id=pk, merchant=request.user)
@@ -30,7 +37,10 @@ class SubmitKYCView(APIView):
         except ValueError as e:
             return Response({"error": str(e)}, status=400)
         
+
 class ReviewerQueueView(APIView):
+    permission_classes = [IsAuthenticated, IsReviewer]
+
     def get(self, request):
         submissions = KYCSubmission.objects.filter(state="submitted").order_by("created_at")
 
@@ -38,8 +48,10 @@ class ReviewerQueueView(APIView):
         return Response(serializer.data)
     
 class ReviewActionView(APIView):
+    permission_classes = [IsAuthenticated, IsReviewer]
+
     def post(self, request, pk):
-        action = request.data.get("action")  # approved / rejected / more_info_requested
+        action = request.data.get("action")
 
         try:
             submission = KYCSubmission.objects.get(id=pk)
