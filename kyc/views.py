@@ -42,10 +42,12 @@ class ReviewerQueueView(APIView):
     permission_classes = [IsAuthenticated, IsReviewer]
 
     def get(self, request):
-        submissions = KYCSubmission.objects.filter(state="submitted").order_by("created_at")
+        submissions = KYCSubmission.objects.filter(
+            state__in=["submitted", "under_review"]
+        ).order_by("created_at")
 
         serializer = KYCSubmissionSerializer(submissions, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data)    
     
 class ReviewActionView(APIView):
     permission_classes = [IsAuthenticated, IsReviewer]
@@ -88,3 +90,45 @@ class DocumentUploadView(APIView):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=400)
+    
+class ReviewerDashboardView(APIView):
+    permission_classes = [IsAuthenticated, IsReviewer]
+
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        submissions = KYCSubmission.objects.all()
+
+        total_in_queue = submissions.filter(state="submitted").count()
+
+        # Avg time in queue
+        queue_items = submissions.filter(state="submitted")
+
+        avg_time = 0
+        if queue_items.exists():
+            total_time = sum(
+                [(timezone.now() - s.created_at).total_seconds() for s in queue_items]
+            )
+            avg_time = total_time / queue_items.count()
+            avg_time_hours = avg_time / 3600
+
+        # Approval rate (last 7 days)
+        last_7_days = timezone.now() - timedelta(days=7)
+
+        approved = submissions.filter(
+            state="approved",
+            updated_at__gte=last_7_days
+        ).count()
+
+        total_recent = submissions.filter(
+            updated_at__gte=last_7_days
+        ).count()
+
+        approval_rate = (approved / total_recent) if total_recent > 0 else 0
+
+        return Response({
+            "total_in_queue": total_in_queue,
+            "avg_time_in_queue_hours": avg_time_hours,
+            "approval_rate_last_7_days": approval_rate
+        })

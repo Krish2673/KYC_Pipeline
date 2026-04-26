@@ -7,4 +7,5 @@ urlpatterns = [
     path('review/queue/', ReviewerQueueView.as_view()),
     path('review/<int:pk>/action/', ReviewActionView.as_view()),
     path('kyc/upload-doc/', DocumentUploadView.as_view()),
+    path('review/dashboard/', ReviewerDashboardView.as_view()),
 ]
