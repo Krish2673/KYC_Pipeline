@@ -15,6 +15,7 @@ class KYCSubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = KYCSubmission
         fields = '__all__'
+        read_only_fields = ['merchant', 'state', 'created_at', 'updated_at']
 
     def get_at_risk(self, obj):
         return timezone.now() - obj.created_at > timedelta(hours=24)
