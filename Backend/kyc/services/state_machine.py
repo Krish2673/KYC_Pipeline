@@ -18,11 +18,14 @@ def transition_state(submission, new_state):
     submission.state = new_state
     submission.save()
 
-    # log notification
     Notification.objects.create(
         merchant=submission.merchant,
-        event_type=f"state_changed_to_{new_state}",
-        payload={"submission_id": submission.id}
+        event_type="state_changed",
+        payload={
+            "submission_id": submission.id,
+            "old_state": current_state,
+            "new_state": new_state
+        }
     )
 
     return submission

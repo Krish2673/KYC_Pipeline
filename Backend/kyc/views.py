@@ -1,3 +1,5 @@
+from urllib import request
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -54,10 +56,24 @@ class ReviewActionView(APIView):
 
     def post(self, request, pk):
         action = request.data.get("action")
+        reason = request.data.get("reason") 
 
         try:
             submission = KYCSubmission.objects.get(id=pk)
 
+            # 🔹 Prevent re-approval
+            if submission.state == "approved":
+                return Response({"error": "Already approved"}, status=400)
+
+            # 🔹 Require reason for rejection
+            if action == "rejected" and not reason:
+                return Response({"error": "Rejection reason required"}, status=400)
+
+            # 🔹 Move to under_review first (important flow)
+            if submission.state == "submitted":
+                transition_state(submission, "under_review")
+
+            # 🔹 Final transition
             transition_state(submission, action)
 
             return Response({"message": f"{action} successful"})
@@ -66,7 +82,7 @@ class ReviewActionView(APIView):
             return Response({"error": "Not found"}, status=404)
 
         except ValueError as e:
-            return Response({"error": str(e)}, status=400)
+            return Response({"error": str(e)}, status=400) 
         
 class DocumentUploadView(APIView):
     permission_classes = [IsAuthenticated, IsMerchant]
@@ -132,3 +148,14 @@ class ReviewerDashboardView(APIView):
             "avg_time_in_queue_hours": avg_time_hours,
             "approval_rate_last_7_days": approval_rate
         })
+    
+class SubmissionDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsReviewer]
+
+    def get(self, request, pk):
+        try:
+            submission = KYCSubmission.objects.get(id=pk)
+            serializer = KYCSubmissionSerializer(submission)
+            return Response(serializer.data)
+        except KYCSubmission.DoesNotExist:
+            return Response({"error": "Not found"}, status=404)
