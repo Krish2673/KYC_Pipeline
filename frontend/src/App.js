@@ -5,8 +5,8 @@ import SubmissionDetail from "./pages/SubmissionDetail";
 import { setToken } from "./api/api";
 
 const USERS = {
-  merchant: "dd6efa58049f9169a94e5f6efc4fb52cfed197f6",
-  reviewer: "88c595fe6e7f8d7d20ecdb3d7ad504f78a01490a",
+  merchant: "d6169b508cdcf394a8e8fc1d3401f05f4bf94b9f",
+  reviewer: "b14266228fb84510a5e2f2750296e0561d7e21ee",
 };
 
 function App() {
