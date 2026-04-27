@@ -47,6 +47,7 @@ class Command(BaseCommand):
             business_type="Agency",
             expected_volume=2000
         )
+        
         # Generate tokens
         for user in [merchant1, merchant2, reviewer]:
             token, _ = Token.objects.get_or_create(user=user)
