@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from kyc.models import User, KYCSubmission
+from rest_framework.authtoken.models import Token
 
 class Command(BaseCommand):
     help = "Seed initial data"
@@ -46,5 +47,9 @@ class Command(BaseCommand):
             business_type="Agency",
             expected_volume=2000
         )
+        # Generate tokens
+        for user in [merchant1, merchant2, reviewer]:
+            token, _ = Token.objects.get_or_create(user=user)
+            print(f"{user.username} token: {token.key}")
 
         self.stdout.write(self.style.SUCCESS("Seed data created"))
