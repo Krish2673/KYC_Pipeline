@@ -1,10 +1,12 @@
-from urllib import request
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import KYCSubmission
-from .serializers import KYCSubmissionSerializer, DocumentSerializer
+from .serializers import (
+    KYCSubmissionSerializer,
+    KYCSubmissionDetailSerializer,
+    DocumentSerializer,
+)
 from kyc.services.state_machine import transition_state
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsMerchant
@@ -99,7 +101,10 @@ class DocumentUploadView(APIView):
         except KYCSubmission.DoesNotExist:
             return Response({"error": "Invalid submission"}, status=400)
 
-        serializer = DocumentSerializer(data=request.data)
+        serializer = DocumentSerializer(
+            data=request.data,
+            context={'request': request},
+        )
 
         if serializer.is_valid():
             serializer.save(submission=submission)
@@ -121,7 +126,7 @@ class ReviewerDashboardView(APIView):
         # Avg time in queue
         queue_items = submissions.filter(state="submitted")
 
-        avg_time = 0
+        avg_time_hours = 0
         if queue_items.exists():
             total_time = sum(
                 [(timezone.now() - s.created_at).total_seconds() for s in queue_items]
@@ -154,8 +159,13 @@ class SubmissionDetailView(APIView):
 
     def get(self, request, pk):
         try:
-            submission = KYCSubmission.objects.get(id=pk)
-            serializer = KYCSubmissionSerializer(submission)
+            submission = KYCSubmission.objects.prefetch_related('document_set').get(
+                id=pk
+            )
+            serializer = KYCSubmissionDetailSerializer(
+                submission,
+                context={'request': request},
+            )
             return Response(serializer.data)
         except KYCSubmission.DoesNotExist:
             return Response({"error": "Not found"}, status=404)

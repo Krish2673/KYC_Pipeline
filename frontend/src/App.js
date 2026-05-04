@@ -9,73 +9,107 @@ const USERS = {
   reviewer: "b14266228fb84510a5e2f2750296e0561d7e21ee",
 };
 
+const ROLE_META = {
+  merchant: {
+    title: "Merchant",
+    blurb: "Submit KYC and upload verification documents.",
+  },
+  reviewer: {
+    title: "Reviewer",
+    blurb: "Open the queue, review details, and approve or reject.",
+  },
+};
+
 function App() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [refreshFlag, setRefreshFlag] = useState(0);
 
-  // 🔐 Login
   const handleLogin = (user) => {
     setToken(USERS[user]);
     setSelectedUser(user);
   };
 
-  // 🚪 Logout
   const handleLogout = () => {
     setSelectedUser(null);
     setSelectedSubmission(null);
   };
 
-  // 🔄 Refresh queue after action
   const triggerRefresh = () => {
-    setSelectedSubmission(null); // close detail view
-    setRefreshFlag((prev) => prev + 1); // reload queue
+    setSelectedSubmission(null);
+    setRefreshFlag((prev) => prev + 1);
   };
 
-  // 🔴 Login screen
   if (!selectedUser) {
     return (
-      <div style={{ padding: "40px" }}>
-        <h2>Select User</h2>
-
-        {Object.keys(USERS).map((user) => (
-          <button key={user} onClick={() => handleLogin(user)}>
-            Login as {user}
-          </button>
-        ))}
+      <div className="app-shell login-shell">
+        <header className="login-header">
+          <div className="brand-mark" aria-hidden />
+          <h1 className="login-title">Playto KYC</h1>
+          <p className="login-lead">
+            Know-your-customer flow for merchants and reviewers.
+          </p>
+        </header>
+        <div className="role-grid">
+          {Object.keys(USERS).map((user) => (
+            <button
+              key={user}
+              type="button"
+              className="role-card"
+              onClick={() => handleLogin(user)}
+            >
+              <span className="role-card-title">
+                {ROLE_META[user]?.title || user}
+              </span>
+              <span className="role-card-blurb">
+                {ROLE_META[user]?.blurb}
+              </span>
+              <span className="role-card-cta">Continue →</span>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
 
-  // 🟢 Main app
   return (
-    <div className="container">
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h1>Playto KYC</h1>
-        <button onClick={handleLogout}>Logout</button>
-      </div>
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header-inner">
+          <div className="brand-row">
+            <span className="brand-mark sm" aria-hidden />
+            <div>
+              <h1 className="app-title">Playto KYC</h1>
+              <p className="app-sub">
+                Signed in as{" "}
+                <strong>{ROLE_META[selectedUser]?.title || selectedUser}</strong>
+              </p>
+            </div>
+          </div>
+          <button type="button" className="btn btn-ghost" onClick={handleLogout}>
+            Sign out
+          </button>
+        </div>
+      </header>
 
-      <p>Logged in as: {selectedUser}</p>
+      <main className="app-main">
+        {selectedUser === "merchant" && <MerchantForm />}
 
-      {/* Merchant View */}
-      {selectedUser === "merchant" && <MerchantForm />}
-
-      {/* Reviewer View */}
-      {selectedUser === "reviewer" && (
-        <>
-          <ReviewerQueue
-            setSelected={setSelectedSubmission}
-            refreshFlag={refreshFlag}
-          />
-
-          {selectedSubmission && (
-            <SubmissionDetail
-              id={selectedSubmission}
-              triggerRefresh={triggerRefresh}
+        {selectedUser === "reviewer" && (
+          <div className="reviewer-layout">
+            <ReviewerQueue
+              setSelected={setSelectedSubmission}
+              refreshFlag={refreshFlag}
             />
-          )}
-        </>
-      )}
+            {selectedSubmission && (
+              <SubmissionDetail
+                id={selectedSubmission}
+                triggerRefresh={triggerRefresh}
+              />
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
